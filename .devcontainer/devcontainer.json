@@ -1,10 +1,12 @@
 {
-  "name": "template-repo (py3.14-trixie + uv)",
-  "image": "ghcr.io/astral-sh/uv:python3.14-trixie",
+  "name": "dess2-bogaloo (py3.12-trixie + uv)",
+  "image": "ghcr.io/astral-sh/uv:python3.12-trixie",
+  "runArgs": ["--gpus=all"],
 
   "customizations": {
     "vscode": {
       "extensions": [
+        "OpenAI.chatgpt",
         "ms-python.python",
         "ms-python.vscode-pylance"
       ]

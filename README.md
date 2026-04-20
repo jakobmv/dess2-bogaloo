@@ -1,56 +1,37 @@
-# template-repo
+# dess2-bogaloo
 
-Lean Python starter repo with your default setup and conventions already in place.
+Lean research repo for:
 
-This template keeps the parts you want to reuse:
+1. reproducing the SQID paper's reranking setup and baselines
+2. adding a separate 3-layer MLP + DESS reranker only after reproduction is verified
 
-- `uv` for environment management and commands
-- a simple devcontainer based on `ghcr.io/astral-sh/uv:python3.14-trixie`
-- `src/` package layout
-- the repo conventions in `AGENTS.md`
-- a one-command project initializer
-
-## Use This Template
-
-Clone the template, then run:
+## Main Workflow
 
 ```bash
-git clone git@github.com:jakobmv/template-repo.git my-new-project
-cd my-new-project
-make init
+make sync
+make test
+make download-data
+make reproduce-random
 ```
 
-The setup will prompt you for:
+This repo is pinned to Python `3.12` because the baseline stack depends on PyTorch, and the official PyTorch install docs currently recommend Python `3.9-3.12` on Linux.
 
-- whether to use the current top-folder name as the project name
-- a short project description
-- whether to create `git@github.com:jakobmv/<project-name>.git` and point `origin` there
-- GitHub visibility when you choose to create the repo
-
-If you clone into the final folder name up front, you can usually just answer `y` to the first prompt.
-
-What `make init` does:
-
-- renames `src/template_repo` to match your new package name
-- rewrites `pyproject.toml`, `README.md`, and `.devcontainer/devcontainer.json`
-- keeps `AGENTS.md` and the rest of the repo structure intact
-- runs `uv sync` to create a fresh local environment
-- optionally creates `git@github.com:jakobmv/<project-name>.git` and points `origin` there
-
-Defaults:
-
-- GitHub owner: `jakobmv`
-- GitHub visibility: `private`
-
-You can still run the script directly for non-interactive setup:
+Run more reproduction baselines:
 
 ```bash
-uv run python scripts/init_project.py --name my-new-project --description "Short project description" --create-github
+uv run python scripts/run_reproduction.py --baselines random sbert_text clip_text clip_image
 ```
 
-## Development
+Evaluate a saved run:
 
 ```bash
-uv sync
-uv run python -m unittest
+uv run python scripts/evaluate.py outputs/reproduction/random.csv
 ```
+
+Build the short report:
+
+```bash
+make report
+```
+
+`scripts/train_dess.py` is intentionally gated until the reproduction summary exists.
