@@ -1,0 +1,54 @@
+{
+  "checkpoint_path": "outputs/dess/mlp_joint/dess_sbert_text_mlp_joint.pt",
+  "config": {
+    "alpha": 0.5,
+    "batch_size": 256,
+    "beta": 1.0,
+    "cache_dir": "outputs/reproduction/cache",
+    "device": "cuda",
+    "dropout": 0.1,
+    "epochs": 3,
+    "eval_batch_size": 2048,
+    "hidden_dim": 1024,
+    "learning_rate": 0.001,
+    "max_train_rows": null,
+    "min_gain": 0.01,
+    "model_name": "sentence-transformers/all-MiniLM-L12-v2",
+    "seed": 42,
+    "variant": "mlp_joint",
+    "weight_decay": 0.0001
+  },
+  "feature_source": "sbert_text",
+  "history": [
+    {
+      "epoch": 1.0,
+      "loss": 0.014393303937986388,
+      "mu_loss": 0.003674794653656592,
+      "sigma_loss": 0.025192014124649935
+    },
+    {
+      "epoch": 2.0,
+      "loss": 0.010565106215512671,
+      "mu_loss": 0.0017183643790587306,
+      "sigma_loss": 0.01957796628855624
+    },
+    {
+      "epoch": 3.0,
+      "loss": 0.01039619163819135,
+      "mu_loss": 0.0016726578872017187,
+      "sigma_loss": 0.0193162517751715
+    }
+  ],
+  "history_path": "outputs/dess/mlp_joint/dess_sbert_text_mlp_joint.history.csv",
+  "loss_impl": "dess_updated",
+  "metrics_path": "outputs/dess/mlp_joint/dess_sbert_text_mlp_joint.metrics.json",
+  "name": "dess_sbert_text_mlp_joint",
+  "official_multi_target_probe": {
+    "ok": false,
+    "reason": "UnboundLocalError: cannot access local variable 'mu_loss' where it is not associated with a value"
+  },
+  "run_path": "outputs/dess/mlp_joint/dess_sbert_text_mlp_joint.csv",
+  "train_queries": 20888,
+  "train_rows": 348537,
+  "variant": "mlp_joint"
+}

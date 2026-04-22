@@ -1,0 +1,49 @@
+{
+  "best_epoch": 8,
+  "best_val_rmse": 5.588500499725342,
+  "checkpoint_path": "outputs/single_target_gas_turbine/dual_head_detached_sigma/seed_42/gas_turbine_dual_head_detached_sigma_seed42.pt",
+  "config": {
+    "alpha": 0.5,
+    "batch_size": 512,
+    "beta": 1.0,
+    "device": "cuda",
+    "dropout": 0.1,
+    "epochs": 40,
+    "eval_batch_size": 4096,
+    "hidden_dim": 128,
+    "learning_rate": 0.001,
+    "patience": 8,
+    "seed": 42,
+    "val_fraction": 0.2,
+    "variant": "dual_head_detached_sigma",
+    "weight_decay": 0.0001
+  },
+  "dataset": "uci_gas_turbine_co_nox",
+  "dataset_citation": "Gas Turbine CO and NOx Emission Data Set [Dataset]. (2019). UCI Machine Learning Repository. https://doi.org/10.24432/C5WC95.",
+  "dataset_url": "https://archive.ics.uci.edu/static/public/551/gas+turbine+co+and+nox+emission+data+set.zip",
+  "feature_columns": [
+    "AT",
+    "AP",
+    "AH",
+    "AFDP",
+    "GTEP",
+    "TIT",
+    "TAT",
+    "TEY",
+    "CDP"
+  ],
+  "history_path": "outputs/single_target_gas_turbine/dual_head_detached_sigma/seed_42/gas_turbine_dual_head_detached_sigma_seed42.history.csv",
+  "metrics_path": "outputs/single_target_gas_turbine/dual_head_detached_sigma/seed_42/gas_turbine_dual_head_detached_sigma_seed42.metrics.json",
+  "name": "gas_turbine_dual_head_detached_sigma_seed42",
+  "predictions_path": "outputs/single_target_gas_turbine/dual_head_detached_sigma/seed_42/gas_turbine_dual_head_detached_sigma_seed42.predictions.csv",
+  "split_protocol": "Chronological split following the UCI recommendation: first three years as the training/cross-validation pool, last two years as test; the last validation fraction of the train pool is used as validation.",
+  "target_columns": [
+    "CO",
+    "NOX"
+  ],
+  "test_rows": 14542,
+  "train_rows": 17753,
+  "val_rows": 4438,
+  "variant": "dual_head_detached_sigma",
+  "variant_description": "Separate mu and sigma heads; sigma is trained against a detached copy of mu."
+}

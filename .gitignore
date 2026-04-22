@@ -13,6 +13,5 @@ dist/
 data/raw/
 data/processed/
 outputs/
-rapports/
 artifacts/
 checkpoints/

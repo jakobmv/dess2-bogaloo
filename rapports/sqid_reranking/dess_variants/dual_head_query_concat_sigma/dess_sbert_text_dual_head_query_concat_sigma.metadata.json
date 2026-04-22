@@ -1,0 +1,54 @@
+{
+  "checkpoint_path": "outputs/dess/dual_head_query_concat_sigma/dess_sbert_text_dual_head_query_concat_sigma.pt",
+  "config": {
+    "alpha": 0.5,
+    "batch_size": 256,
+    "beta": 1.0,
+    "cache_dir": "outputs/reproduction/cache",
+    "device": "cuda",
+    "dropout": 0.1,
+    "epochs": 3,
+    "eval_batch_size": 2048,
+    "hidden_dim": 1024,
+    "learning_rate": 0.001,
+    "max_train_rows": null,
+    "min_gain": 0.01,
+    "model_name": "sentence-transformers/all-MiniLM-L12-v2",
+    "seed": 42,
+    "variant": "dual_head_query_concat_sigma",
+    "weight_decay": 0.0001
+  },
+  "feature_source": "sbert_text",
+  "history": [
+    {
+      "epoch": 1.0,
+      "loss": 0.018424049153888376,
+      "mu_loss": 0.0016434228781148038,
+      "sigma_loss": 0.03551198884638452
+    },
+    {
+      "epoch": 2.0,
+      "loss": 0.01648048255108455,
+      "mu_loss": 0.0016132602283214256,
+      "sigma_loss": 0.03169175124097049
+    },
+    {
+      "epoch": 3.0,
+      "loss": 0.012225700514471522,
+      "mu_loss": 0.001607046601723892,
+      "sigma_loss": 0.02310424297004835
+    }
+  ],
+  "history_path": "outputs/dess/dual_head_query_concat_sigma/dess_sbert_text_dual_head_query_concat_sigma.history.csv",
+  "loss_impl": "dess_updated",
+  "metrics_path": "outputs/dess/dual_head_query_concat_sigma/dess_sbert_text_dual_head_query_concat_sigma.metrics.json",
+  "name": "dess_sbert_text_dual_head_query_concat_sigma",
+  "official_multi_target_probe": {
+    "ok": false,
+    "reason": "UnboundLocalError: cannot access local variable 'mu_loss' where it is not associated with a value"
+  },
+  "run_path": "outputs/dess/dual_head_query_concat_sigma/dess_sbert_text_dual_head_query_concat_sigma.csv",
+  "train_queries": 20888,
+  "train_rows": 348537,
+  "variant": "dual_head_query_concat_sigma"
+}

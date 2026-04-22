@@ -1,0 +1,34 @@
+{
+  "checkpoint_config": {
+    "alpha": 0.5,
+    "batch_size": 256,
+    "beta": 1.0,
+    "cache_dir": "outputs/reproduction/cache",
+    "device": "cuda",
+    "dropout": 0.1,
+    "epochs": 3,
+    "eval_batch_size": 2048,
+    "hidden_dim": 1024,
+    "learning_rate": 0.001,
+    "max_train_rows": null,
+    "min_gain": 0.01,
+    "model_name": "sentence-transformers/all-MiniLM-L12-v2",
+    "seed": 42,
+    "variant": "mlp_joint",
+    "weight_decay": 0.0001
+  },
+  "checkpoint_path": "outputs/dess/mlp_joint/dess_sbert_text_mlp_joint.pt",
+  "config": {
+    "cache_dir": "outputs/reproduction/cache",
+    "device": "cpu",
+    "eval_batch_size": 2048,
+    "model_name": "sentence-transformers/all-MiniLM-L12-v2",
+    "seed": 43
+  },
+  "metrics_path": "outputs/dess_sampling/mlp_joint/seed_43/dess_sampling_sbert_text_mlp_joint_seed43.metrics.json",
+  "name": "dess_sampling_sbert_text_mlp_joint_seed43",
+  "run_path": "outputs/dess_sampling/mlp_joint/seed_43/dess_sampling_sbert_text_mlp_joint_seed43.csv",
+  "sampling_method": "For each query, repeatedly sample z ~ N(mu, sigma^2) independently per dimension; choose the remaining candidate with highest cosine similarity to z; remove it; repeat until the candidate list is exhausted.",
+  "seed": 43,
+  "variant": "mlp_joint"
+}
