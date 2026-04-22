@@ -82,6 +82,10 @@ Extra metrics may be added later, but not before reproduction is working.
 
 Only start after Part 1 is working.
 
+Vendored upstream note:
+- `src/dess2_bogaloo/dess_original.py` is a vendored copy of the official DESS GitHub implementation and must not be changed locally.
+- If repo-specific fixes or SQID integration changes are needed, add them in `src/dess2_bogaloo/dess_updated.py` instead.
+
 Add a new reranker with:
 
 - frozen features as input

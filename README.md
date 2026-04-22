@@ -34,4 +34,19 @@ Build the short report:
 make report
 ```
 
-`scripts/train_dess.py` is intentionally gated until the reproduction summary exists.
+Train the first DESS extension pass on frozen `SBERT_text` features:
+
+```bash
+make train-dess
+```
+
+`scripts/train_dess.py` still checks that the reproduction summary exists first, but it now trains a 3-layer adapter on top of the frozen SBERT-text baseline and evaluates it on the same reranking protocol.
+
+Run the separate single-target Gas Turbine benchmark sweep:
+
+```bash
+make single-target
+make single-target-report
+```
+
+This experiment uses the UCI Gas Turbine CO/NOx dataset as a simpler vector regression task for the single-target form of DESS.

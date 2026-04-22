@@ -1,7 +1,7 @@
 {
   "name": "dess2-bogaloo (py3.12-trixie + uv)",
   "image": "ghcr.io/astral-sh/uv:python3.12-trixie",
-  "runArgs": ["--gpus=all"],
+  "runArgs": ["--gpus=device=7"],
 
   "customizations": {
     "vscode": {

@@ -1,4 +1,4 @@
-.PHONY: sync test download-data reproduce-random reproduce evaluate report train-dess
+.PHONY: sync test download-data reproduce-random reproduce evaluate report train-dess dess-sampling single-target single-target-report
 
 sync:
 	uv sync
@@ -23,3 +23,12 @@ report:
 
 train-dess:
 	uv run python scripts/train_dess.py
+
+dess-sampling:
+	uv run python scripts/run_dess_sampling.py
+
+single-target:
+	uv run python scripts/run_single_target_dess.py
+
+single-target-report:
+	uv run python scripts/make_single_target_report.py

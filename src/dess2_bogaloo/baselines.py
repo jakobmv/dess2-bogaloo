@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -290,9 +291,20 @@ def train_esci_baseline_model(
     from sentence_transformers.cross_encoder.evaluation import CERerankingEvaluator
     from torch.utils.data import DataLoader
 
+    def _is_cross_encoder_dir(path: Path) -> bool:
+        config_path = path / "config.json"
+        if not config_path.exists():
+            return False
+        try:
+            return '"model_type"' in config_path.read_text(encoding="utf-8")
+        except OSError:
+            return False
+
     ensure_dir(model_dir.parent)
-    if model_dir.exists():
+    if _is_cross_encoder_dir(model_dir):
         return model_dir
+    if model_dir.exists():
+        shutil.rmtree(model_dir)
 
     train = build_training_subset(paths)
     query_ids = train["query_id"].unique()
