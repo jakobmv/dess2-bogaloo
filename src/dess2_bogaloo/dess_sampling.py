@@ -86,20 +86,25 @@ def sample_candidate_order(
     if num_candidates == 0:
         return np.empty(0, dtype=np.int64), np.empty(0, dtype=np.float32)
 
-    remaining = list(range(num_candidates))
     draw_order = np.empty(num_candidates, dtype=np.int64)
     draw_cosine = np.empty(num_candidates, dtype=np.float32)
     normalized_candidates = l2_normalize(candidate_matrix.astype(np.float32, copy=False))
+    sampled_points = rng.normal(
+        loc=mu,
+        scale=sigma,
+        size=(num_candidates, mu.shape[0]),
+    ).astype(np.float32, copy=False)
+    normalized_samples = l2_normalize(sampled_points)
+    similarity_matrix = normalized_samples @ normalized_candidates.T
+    remaining_mask = np.ones(num_candidates, dtype=bool)
 
     for step in range(num_candidates):
-        sampled_point = rng.normal(loc=mu, scale=sigma).astype(np.float32, copy=False)
-        normalized_sample = l2_normalize(sampled_point[None, :])[0]
-        candidate_rows = np.asarray(remaining, dtype=np.int64)
-        similarities = normalized_candidates[candidate_rows] @ normalized_sample
-        best_offset = int(np.argmax(similarities))
-        chosen_row = remaining.pop(best_offset)
+        similarities = similarity_matrix[step].copy()
+        similarities[~remaining_mask] = -np.inf
+        chosen_row = int(np.argmax(similarities))
+        remaining_mask[chosen_row] = False
         draw_order[chosen_row] = step + 1
-        draw_cosine[chosen_row] = float(similarities[best_offset])
+        draw_cosine[chosen_row] = float(similarities[chosen_row])
 
     return draw_order, draw_cosine
 
@@ -114,18 +119,19 @@ def sample_rerank_subset(
     seed: int,
 ) -> pd.DataFrame:
     run = subset[["query_id", "query", "product_id", "product_title", "esci_label"]].copy()
-    run["score"] = np.nan
-    run["draw_order"] = 0
-    run["draw_cosine"] = np.nan
-
+    num_rows = int(run.shape[0])
+    score_values = np.empty(num_rows, dtype=np.float32)
+    draw_order_values = np.empty(num_rows, dtype=np.int64)
+    draw_cosine_values = np.empty(num_rows, dtype=np.float32)
     product_lookup = {value: index for index, value in enumerate(product_table["product_id"].tolist())}
-
-    for query_id, group in run.groupby("query_id", sort=False):
-        product_rows = group["product_id"].map(product_lookup)
-        if product_rows.isna().any():
-            missing = group.loc[product_rows.isna(), "product_id"].tolist()[:5]
-            raise KeyError(f"Missing product embeddings for product_ids like {missing}")
-        candidate_matrix = product_matrix[product_rows.to_numpy(dtype=int)]
+    product_ids = run["product_id"].to_numpy()
+    for query_id, group_rows in run.groupby("query_id", sort=False).indices.items():
+        row_indices = np.asarray(group_rows, dtype=np.int64)
+        try:
+            product_rows = np.asarray([product_lookup[product_ids[index]] for index in row_indices], dtype=np.int64)
+        except KeyError as exc:
+            raise KeyError(f"Missing product embedding for product_id {exc.args[0]}") from exc
+        candidate_matrix = product_matrix[product_rows]
         rng = np.random.default_rng(_stable_query_seed(seed, query_id))
         draw_order, draw_cosine = sample_candidate_order(
             mu=mu_lookup[query_id],
@@ -133,13 +139,13 @@ def sample_rerank_subset(
             candidate_matrix=candidate_matrix,
             rng=rng,
         )
-        group_scores = (group.shape[0] - draw_order).astype(np.float32)
-        run.loc[group.index, "score"] = group_scores
-        run.loc[group.index, "draw_order"] = draw_order
-        run.loc[group.index, "draw_cosine"] = draw_cosine
+        score_values[row_indices] = (row_indices.shape[0] - draw_order).astype(np.float32)
+        draw_order_values[row_indices] = draw_order
+        draw_cosine_values[row_indices] = draw_cosine
 
-    if run["score"].isna().any():
-        raise RuntimeError("Sampling reranker failed to assign scores to all candidates.")
+    run["score"] = score_values
+    run["draw_order"] = draw_order_values
+    run["draw_cosine"] = draw_cosine_values
     return run
 
 
