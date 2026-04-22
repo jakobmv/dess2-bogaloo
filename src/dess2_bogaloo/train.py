@@ -8,12 +8,21 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from dess2_bogaloo.data import DatasetPaths, build_reranking_subset, build_training_subset
+from dess2_bogaloo.data import (
+    DatasetPaths,
+    build_reranking_subset,
+    build_training_subset,
+    embedding_matrix,
+    load_embedding_table,
+)
 from dess2_bogaloo.dess_model import VARIANT_MODEL_TYPES, DESSOutputs, TextDessAdapter
 from dess2_bogaloo.dess_original import F_dess_loss as original_dess_loss
 from dess2_bogaloo.dess_updated import dess_loss_from_parts, gaussian_log_score
 from dess2_bogaloo.eval import evaluate_run
 from dess2_bogaloo.utils import ensure_dir, write_json
+
+
+DESS_FEATURE_SOURCES = ("sbert_text", "clip_image")
 
 
 def ensure_reproduction_verified(summary_path: Path) -> None:
@@ -49,6 +58,7 @@ class DessTrainConfig:
     model_name: str = "sentence-transformers/all-MiniLM-L12-v2"
     cache_dir: Path = Path("outputs/reproduction/cache")
     variant: str = "mlp_joint"
+    feature_source: str = "sbert_text"
 
 
 class _PairDataset(Dataset):
@@ -175,6 +185,97 @@ def _load_sbert_tables(
     query_matrix = np.stack(query_table["embedding"].map(lambda value: np.asarray(value, dtype=np.float32)))
     product_matrix = np.stack(product_table["embedding"].map(lambda value: np.asarray(value, dtype=np.float32)))
     return query_table, query_matrix, product_table, product_matrix
+
+
+def _load_frozen_feature_tables(
+    subset: pd.DataFrame,
+    *,
+    paths: DatasetPaths,
+    query_tokens: list[str],
+    product_tokens: list[str],
+) -> tuple[pd.DataFrame, np.ndarray, pd.DataFrame, np.ndarray]:
+    expected_query_ids = subset["query_id"].drop_duplicates()
+    expected_product_ids = subset["product_id"].drop_duplicates()
+    query_frame = load_embedding_table(
+        paths.query_features_path,
+        id_col="query_id",
+        preferred_tokens=query_tokens,
+    )
+    product_frame = load_embedding_table(
+        paths.product_features_path,
+        id_col="product_id",
+        preferred_tokens=product_tokens,
+    )
+    query_frame = query_frame.loc[query_frame["query_id"].isin(expected_query_ids)].copy()
+    product_frame = product_frame.loc[product_frame["product_id"].isin(expected_product_ids)].copy()
+    missing_query_ids = expected_query_ids.loc[~expected_query_ids.isin(query_frame["query_id"])].tolist()
+    missing_product_ids = expected_product_ids.loc[
+        ~expected_product_ids.isin(product_frame["product_id"])
+    ].tolist()
+    if missing_query_ids:
+        sample = missing_query_ids[:5]
+        raise KeyError(
+            "Frozen feature table is missing query embeddings for "
+            f"{len(missing_query_ids)} ids, including {sample}. "
+            "For SQID CLIP features, the released query_features.parquet only covers the reranking test queries."
+        )
+    if missing_product_ids:
+        sample = missing_product_ids[:5]
+        raise KeyError(
+            "Frozen feature table is missing product embeddings for "
+            f"{len(missing_product_ids)} ids, including {sample}."
+        )
+    query_frame["query_id"] = query_frame["query_id"].astype(subset["query_id"].dtype)
+    product_frame["product_id"] = product_frame["product_id"].astype(subset["product_id"].dtype)
+    query_frame = query_frame.sort_values("query_id", kind="mergesort").reset_index(drop=True)
+    product_frame = product_frame.sort_values("product_id", kind="mergesort").reset_index(drop=True)
+    query_ids, query_matrix = embedding_matrix(query_frame, id_col="query_id")
+    product_ids, product_matrix = embedding_matrix(product_frame, id_col="product_id")
+    query_table = pd.DataFrame({"query_id": query_ids, "embedding": list(query_matrix)})
+    product_table = pd.DataFrame({"product_id": product_ids, "embedding": list(product_matrix)})
+    return query_table, query_matrix, product_table, product_matrix
+
+
+def _load_feature_tables(
+    subset: pd.DataFrame,
+    *,
+    paths: DatasetPaths,
+    feature_source: str,
+    cache_dir: Path,
+    prefix: str,
+    model_name: str,
+) -> tuple[pd.DataFrame, np.ndarray, pd.DataFrame, np.ndarray]:
+    if feature_source == "sbert_text":
+        return _load_sbert_tables(
+            subset,
+            cache_dir=cache_dir,
+            prefix=prefix,
+            model_name=model_name,
+        )
+    if feature_source == "clip_image":
+        return _load_frozen_feature_tables(
+            subset,
+            paths=paths,
+            query_tokens=[
+                "clip_text_features",
+                "query_embedding",
+                "embedding",
+                "features",
+            ],
+            product_tokens=[
+                "clip_image_features",
+                "image_embedding",
+                "image_features",
+                "product_image_embedding",
+                "visual_embedding",
+                "visual_features",
+                "embedding",
+                "features",
+            ],
+        )
+    raise ValueError(
+        f"Unsupported feature source: {feature_source}. Expected one of {DESS_FEATURE_SOURCES}."
+    )
 
 
 def _positive_training_subset(
@@ -352,6 +453,10 @@ def train_and_evaluate_dess(
     np.random.seed(config.seed)
     if config.variant not in VARIANT_MODEL_TYPES:
         raise ValueError(f"Unsupported DESS variant: {config.variant}")
+    if config.feature_source not in DESS_FEATURE_SOURCES:
+        raise ValueError(
+            f"Unsupported feature source: {config.feature_source}. Expected one of {DESS_FEATURE_SOURCES}."
+        )
 
     train_subset = _positive_training_subset(
         paths,
@@ -359,10 +464,13 @@ def train_and_evaluate_dess(
         max_train_rows=config.max_train_rows,
         seed=config.seed,
     )
-    train_query_table, train_query_matrix, train_product_table, train_product_matrix = _load_sbert_tables(
+    train_prefix = "dess_sbert_train" if config.feature_source == "sbert_text" else config.feature_source
+    train_query_table, train_query_matrix, train_product_table, train_product_matrix = _load_feature_tables(
         train_subset,
+        paths=paths,
+        feature_source=config.feature_source,
         cache_dir=config.cache_dir,
-        prefix="dess_sbert_train",
+        prefix=train_prefix,
         model_name=config.model_name,
     )
     original_probe = probe_original_multi_target_loss(
@@ -417,10 +525,12 @@ def train_and_evaluate_dess(
         history.append(metrics)
 
     eval_subset = build_reranking_subset(paths)
-    eval_query_table, eval_query_matrix, eval_product_table, eval_product_matrix = _load_sbert_tables(
+    eval_query_table, eval_query_matrix, eval_product_table, eval_product_matrix = _load_feature_tables(
         eval_subset,
+        paths=paths,
+        feature_source=config.feature_source,
         cache_dir=config.cache_dir,
-        prefix="sbert_text",
+        prefix=config.feature_source,
         model_name=config.model_name,
     )
     run = _score_subset(
@@ -435,7 +545,7 @@ def train_and_evaluate_dess(
     )
     metrics = evaluate_run(run)
 
-    run_name = f"dess_sbert_text_{config.variant}"
+    run_name = f"dess_{config.feature_source}_{config.variant}"
     run_path = output_dir / f"{run_name}.csv"
     metrics_path = output_dir / f"{run_name}.metrics.json"
     summary_path = output_dir / "summary.csv"
@@ -461,7 +571,7 @@ def train_and_evaluate_dess(
         {
             "name": run_name,
             "config": _jsonable_config(config),
-            "feature_source": "sbert_text",
+            "feature_source": config.feature_source,
             "loss_impl": "dess_updated",
             "variant": config.variant,
             "official_multi_target_probe": original_probe,
@@ -482,4 +592,5 @@ def train_and_evaluate_dess(
         "train_rows": int(train_subset.shape[0]),
         "loss_impl": "dess_updated",
         "variant": config.variant,
+        "feature_source": config.feature_source,
     }

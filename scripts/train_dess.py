@@ -5,11 +5,18 @@ from pathlib import Path
 
 from dess2_bogaloo.data import DatasetPaths
 from dess2_bogaloo.dess_model import VARIANT_MODEL_TYPES
-from dess2_bogaloo.train import DessTrainConfig, ensure_reproduction_verified, train_and_evaluate_dess
+from dess2_bogaloo.train import (
+    DESS_FEATURE_SOURCES,
+    DessTrainConfig,
+    ensure_reproduction_verified,
+    train_and_evaluate_dess,
+)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train the SBERT-text + 3-layer adapter + DESS reranker.")
+    parser = argparse.ArgumentParser(
+        description="Train the frozen-feature + 3-layer adapter + DESS reranker."
+    )
     parser.add_argument(
         "--data-root",
         type=Path,
@@ -44,6 +51,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument(
+        "--feature-source",
+        type=str,
+        default="sbert_text",
+        choices=sorted(DESS_FEATURE_SOURCES),
+        help="Frozen feature source to use for query/product embeddings.",
+    )
+    parser.add_argument(
         "--variant",
         type=str,
         default="mlp_joint",
@@ -71,6 +85,7 @@ def main() -> None:
         seed=args.seed,
         device=args.device,
         variant=args.variant,
+        feature_source=args.feature_source,
     )
     train_and_evaluate_dess(
         paths=DatasetPaths(args.data_root),

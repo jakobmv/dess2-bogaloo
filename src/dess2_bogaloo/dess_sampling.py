@@ -11,7 +11,7 @@ import torch
 from dess2_bogaloo.data import DatasetPaths, build_reranking_subset
 from dess2_bogaloo.dess_model import DESSOutputs, VARIANT_MODEL_TYPES
 from dess2_bogaloo.eval import evaluate_run
-from dess2_bogaloo.train import _load_sbert_tables
+from dess2_bogaloo.train import _load_feature_tables
 from dess2_bogaloo.utils import ensure_dir, l2_normalize, write_json
 
 
@@ -162,11 +162,14 @@ def run_dess_sampling_reranker(
     checkpoint_config = payload["config"]
     variant = str(checkpoint_config["variant"])
     model_name = str(checkpoint_config.get("model_name", config.model_name))
+    feature_source = str(checkpoint_config.get("feature_source", "sbert_text"))
     eval_subset = build_reranking_subset(paths)
-    query_table, query_matrix, product_table, product_matrix = _load_sbert_tables(
+    query_table, query_matrix, product_table, product_matrix = _load_feature_tables(
         eval_subset,
+        paths=paths,
+        feature_source=feature_source,
         cache_dir=config.cache_dir,
-        prefix="sbert_text",
+        prefix=feature_source,
         model_name=model_name,
     )
     mu_lookup, sigma_lookup = predict_query_distributions(
@@ -186,7 +189,7 @@ def run_dess_sampling_reranker(
     )
     metrics = evaluate_run(run)
 
-    run_name = f"dess_sampling_sbert_text_{variant}_seed{config.seed}"
+    run_name = f"dess_sampling_{feature_source}_{variant}_seed{config.seed}"
     run_path = output_dir / f"{run_name}.csv"
     metrics_path = output_dir / f"{run_name}.metrics.json"
     summary_path = output_dir / "summary.csv"
@@ -200,6 +203,7 @@ def run_dess_sampling_reranker(
         {
             "name": run_name,
             "variant": variant,
+            "feature_source": feature_source,
             "seed": config.seed,
             "checkpoint_path": str(checkpoint_path),
             "checkpoint_config": {
